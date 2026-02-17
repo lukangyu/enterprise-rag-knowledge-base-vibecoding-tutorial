@@ -1,12 +1,16 @@
 package com.graphrag.search.service.impl;
 
 import com.graphrag.search.dto.SearchResult;
-import io.milvus.v2.client.MilvusClientV2;
-import io.milvus.v2.service.vector.request.DeleteReq;
-import io.milvus.v2.service.vector.request.InsertReq;
-import io.milvus.v2.service.vector.request.SearchReq;
-import io.milvus.v2.service.vector.request.data.FloatVec;
-import io.milvus.v2.service.vector.response.SearchResp;
+import io.milvus.client.MilvusServiceClient;
+import io.milvus.grpc.MutationResult;
+import io.milvus.grpc.SearchResults;
+import io.milvus.param.R;
+import io.milvus.param.dml.DeleteParam;
+import io.milvus.param.dml.InsertParam;
+import io.milvus.param.dml.SearchParam;
+import io.milvus.param.MetricType;
+import io.milvus.response.MutationResultWrapper;
+import io.milvus.response.SearchResultsWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,59 +24,78 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class VectorSearchService {
 
-    private final MilvusClientV2 milvusClient;
+    private final MilvusServiceClient milvusClient;
 
     @Value("${milvus.collection.doc-chunks:doc_chunks}")
     private String docChunksCollection;
+
+    @Value("${milvus.embedding.dimension:1536}")
+    private int embeddingDimension;
 
     public List<SearchResult> search(float[] queryVector, int topK) throws Exception {
         return search(queryVector, topK, null);
     }
 
+    @SuppressWarnings("deprecation")
     public List<SearchResult> search(float[] queryVector, int topK, List<String> docIds) throws Exception {
         long startTime = System.currentTimeMillis();
 
-        FloatVec queryData = new FloatVec(queryVector);
+        List<Float> floatList = new ArrayList<>();
+        for (float f : queryVector) {
+            floatList.add(f);
+        }
+        List<List<Float>> queryVectors = Collections.singletonList(floatList);
 
-        SearchReq.SearchReqBuilder builder = SearchReq.builder()
-                .collectionName(docChunksCollection)
-                .data(Collections.singletonList(queryData))
-                .topK(topK)
-                .fieldName("embedding");
-
+        String expr = null;
         if (docIds != null && !docIds.isEmpty()) {
-            String filter = "doc_id in " + docIds.stream()
-                    .map(id -> "\"" + id + "\"")
+            expr = "doc_id in " + docIds.stream()
+                    .map(id -> "'" + id + "'")
                     .collect(Collectors.joining(", ", "[", "]"));
-            builder.filter(filter);
         }
 
-        SearchResp searchResp = milvusClient.search(builder.build());
+        SearchParam.Builder searchParamBuilder = SearchParam.newBuilder()
+                .withCollectionName(docChunksCollection)
+                .withMetricType(MetricType.COSINE)
+                .withTopK(topK)
+                .withVectors(queryVectors)
+                .withVectorFieldName("embedding")
+                .addOutField("doc_id")
+                .addOutField("chunk_id")
+                .addOutField("content")
+                .addOutField("metadata");
 
+        if (expr != null) {
+            searchParamBuilder.withExpr(expr);
+        }
+
+        SearchParam searchParam = searchParamBuilder.build();
+
+        R<SearchResults> response = milvusClient.search(searchParam);
+        if (response.getStatus() != R.Status.Success.getCode()) {
+            throw new RuntimeException("Search failed: " + response.getMessage());
+        }
+
+        SearchResultsWrapper wrapper = new SearchResultsWrapper(response.getData().getResults());
         List<SearchResult> results = new ArrayList<>();
-        List<List<SearchResp.SearchResult>> searchResults = searchResp.getSearchResults();
-        
-        if (searchResults != null && !searchResults.isEmpty()) {
-            int rank = 1;
-            for (SearchResp.SearchResult hit : searchResults.get(0)) {
-                SearchResult result = SearchResult.builder()
-                        .docId((String) hit.getEntity().get("doc_id"))
-                        .chunkId((String) hit.getEntity().get("chunk_id"))
-                        .content((String) hit.getEntity().get("content"))
-                        .score((double) hit.getScore())
-                        .rank(rank++)
-                        .source("vector")
-                        .build();
+        int rank = 1;
 
-                Object metadata = hit.getEntity().get("metadata");
-                if (metadata instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> metaMap = (Map<String, Object>) metadata;
-                    result.setMetadata(metaMap);
-                }
+        List<SearchResultsWrapper.IDScore> idScores = wrapper.getIDScore(0);
+        for (SearchResultsWrapper.IDScore idScore : idScores) {
+            SearchResult result = SearchResult.builder()
+                    .docId(String.valueOf(idScore.get("doc_id")))
+                    .chunkId(String.valueOf(idScore.get("chunk_id")))
+                    .content(String.valueOf(idScore.get("content")))
+                    .score((double) idScore.getScore())
+                    .rank(rank++)
+                    .source("vector")
+                    .build();
 
-                results.add(result);
+            Object metadata = idScore.get("metadata");
+            if (metadata != null) {
+                result.setMetadata(Collections.singletonMap("metadata", metadata));
             }
+
+            results.add(result);
         }
 
         long duration = System.currentTimeMillis() - startTime;
@@ -81,38 +104,64 @@ public class VectorSearchService {
         return results;
     }
 
-    public void insertVectors(String docId, List<String> chunkIds, List<float[]> vectors, 
+    public List<Long> insertVectors(String docId, List<String> chunkIds, List<float[]> vectors, 
                                List<String> contents) throws Exception {
         if (chunkIds.size() != vectors.size() || chunkIds.size() != contents.size()) {
             throw new IllegalArgumentException("chunkIds, vectors, and contents must have the same size");
         }
 
-        List<Map<String, Object>> data = new ArrayList<>();
+        List<InsertParam.Field> fields = new ArrayList<>();
+        List<String> docIds = new ArrayList<>();
+        List<String> chunkIdList = new ArrayList<>();
+        List<String> contentList = new ArrayList<>();
+        List<List<Float>> vectorList = new ArrayList<>();
+
         for (int i = 0; i < chunkIds.size(); i++) {
-            Map<String, Object> row = new HashMap<>();
-            row.put("id", UUID.randomUUID().toString());
-            row.put("doc_id", docId);
-            row.put("chunk_id", chunkIds.get(i));
-            row.put("content", contents.get(i));
-            row.put("embedding", vectors.get(i));
-            data.add(row);
+            docIds.add(docId);
+            chunkIdList.add(chunkIds.get(i));
+            contentList.add(contents.get(i));
+            
+            List<Float> floatList = new ArrayList<>();
+            for (float f : vectors.get(i)) {
+                floatList.add(f);
+            }
+            vectorList.add(floatList);
         }
 
-        milvusClient.insert(InsertReq.builder()
-                .collectionName(docChunksCollection)
-                .data(data)
-                .build());
+        fields.add(new InsertParam.Field("doc_id", docIds));
+        fields.add(new InsertParam.Field("chunk_id", chunkIdList));
+        fields.add(new InsertParam.Field("content", contentList));
+        fields.add(new InsertParam.Field("embedding", vectorList));
 
+        InsertParam insertParam = InsertParam.newBuilder()
+                .withCollectionName(docChunksCollection)
+                .withFields(fields)
+                .build();
+
+        R<MutationResult> response = milvusClient.insert(insertParam);
+        if (response.getStatus() != R.Status.Success.getCode()) {
+            throw new RuntimeException("Insert failed: " + response.getMessage());
+        }
+
+        MutationResultWrapper resultWrapper = new MutationResultWrapper(response.getData());
+        List<Long> ids = resultWrapper.getLongIDs();
         log.info("Inserted {} vectors for docId={}", vectors.size(), docId);
+
+        return ids;
     }
 
     public void deleteVectors(String docId) throws Exception {
-        String filter = "doc_id == \"" + docId + "\"";
+        String expr = "doc_id in ['" + docId + "']";
         
-        milvusClient.delete(DeleteReq.builder()
-                .collectionName(docChunksCollection)
-                .filter(filter)
-                .build());
+        DeleteParam deleteParam = DeleteParam.newBuilder()
+                .withCollectionName(docChunksCollection)
+                .withExpr(expr)
+                .build();
+
+        R<MutationResult> response = milvusClient.delete(deleteParam);
+        if (response.getStatus() != R.Status.Success.getCode()) {
+            throw new RuntimeException("Delete failed: " + response.getMessage());
+        }
 
         log.info("Deleted vectors for docId={}", docId);
     }

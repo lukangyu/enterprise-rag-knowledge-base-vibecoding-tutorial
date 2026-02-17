@@ -21,9 +21,9 @@
     </modules>
 
     <properties>
-        <java.version>21</java.version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -35,13 +35,11 @@
         <knife4j.version>4.5.0</knife4j.version>
         <jwt.version>0.12.5</jwt.version>
         <hutool.version>5.8.26</hutool.version>
-        <lombok.version>1.18.34</lombok.version>
+        <lombok.version>1.18.30</lombok.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <minio.version>8.5.10</minio.version>
         <kafka.version>3.7.0</kafka.version>
-        <neo4j.version>5.12.0</neo4j.version>
-        <elasticsearch.version>8.12.0</elasticsearch.version>
-        <jakarta.json.version>2.0.1</jakarta.json.version>
+        <neo4j.version>5.19.0</neo4j.version>
     </properties>
 
     <dependencyManagement>
@@ -132,18 +130,6 @@
             </dependency>
 
             <dependency>
-                <groupId>co.elastic.clients</groupId>
-                <artifactId>elasticsearch-java</artifactId>
-                <version>${elasticsearch.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>jakarta.json</groupId>
-                <artifactId>jakarta.json-api</artifactId>
-                <version>${jakarta.json.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.graphrag</groupId>
                 <artifactId>graphrag-common</artifactId>
                 <version>${project.version}</version>
@@ -169,9 +155,10 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.13.0</version>
+                    <version>3.12.1</version>
                     <configuration>
-                        <release>17</release>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
                         <encoding>${project.build.sourceEncoding}</encoding>
                         <annotationProcessorPaths>
                             <path>

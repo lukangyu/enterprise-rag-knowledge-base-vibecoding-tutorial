@@ -1,6 +1,7 @@
 package com.graphrag.common.storage.es;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
@@ -8,12 +9,14 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import co.elastic.clients.json.JsonData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,14 +27,51 @@ public class ElasticsearchClientWrapper {
 
     private final ElasticsearchClient client;
 
-    public boolean createIndex(String indexName, Map<String, Object> settings, Map<String, Object> mappings) throws IOException {
+    public boolean createIndex(String indexName, int numberOfShards, int numberOfReplicas) throws IOException {
         CreateIndexRequest request = CreateIndexRequest.of(builder ->
                 builder.index(indexName)
-                        .settings(s -> s.otherSettings(settings.toString()))
-                        .mappings(m -> m.properties(mappings.toString()))
+                        .settings(s -> s
+                                .numberOfShards(String.valueOf(numberOfShards))
+                                .numberOfReplicas(String.valueOf(numberOfReplicas))
+                        )
         );
         CreateIndexResponse response = client.indices().create(request);
         log.info("Created index: {}, acknowledged: {}", indexName, response.acknowledged());
+        return response.acknowledged();
+    }
+
+    public boolean createIndexWithMapping(String indexName, Map<String, Property> properties) throws IOException {
+        CreateIndexRequest request = CreateIndexRequest.of(builder ->
+                builder.index(indexName)
+                        .mappings(m -> m.properties(properties))
+        );
+        CreateIndexResponse response = client.indices().create(request);
+        log.info("Created index with mapping: {}, acknowledged: {}", indexName, response.acknowledged());
+        return response.acknowledged();
+    }
+
+    public boolean createDocIndex(String indexName) throws IOException {
+        Map<String, Property> properties = new HashMap<>();
+        
+        properties.put("doc_id", Property.of(p -> p.keyword(k -> k)));
+        properties.put("chunk_id", Property.of(p -> p.keyword(k -> k)));
+        properties.put("content", Property.of(p -> p.text(t -> t)));
+        properties.put("title", Property.of(p -> p.text(t -> t)));
+        properties.put("keywords", Property.of(p -> p.keyword(k -> k)));
+        properties.put("milvus_id", Property.of(p -> p.keyword(k -> k)));
+        properties.put("metadata", Property.of(p -> p.object(o -> o)));
+        properties.put("created_at", Property.of(p -> p.date(d -> d)));
+        
+        CreateIndexRequest request = CreateIndexRequest.of(builder ->
+                builder.index(indexName)
+                        .settings(s -> s
+                                .numberOfShards("3")
+                                .numberOfReplicas("1")
+                        )
+                        .mappings(m -> m.properties(properties))
+        );
+        CreateIndexResponse response = client.indices().create(request);
+        log.info("Created doc index: {}, acknowledged: {}", indexName, response.acknowledged());
         return response.acknowledged();
     }
 
@@ -52,10 +92,8 @@ public class ElasticsearchClientWrapper {
     public void bulkIndex(String indexName, List<Map<String, Object>> documents) throws IOException {
         client.bulk(b -> {
             for (Map<String, Object> doc : documents) {
-                String id = (String) doc.get("id");
-                if (id == null) {
-                    id = java.util.UUID.randomUUID().toString();
-                }
+                String rawId = (String) doc.get("id");
+                final String id = (rawId != null) ? rawId : java.util.UUID.randomUUID().toString();
                 b.operations(op -> op.index(idx ->
                         idx.index(indexName).id(id).document(doc)
                 ));

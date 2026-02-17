@@ -71,11 +71,12 @@ public class HybridSearchService {
         } else if (request.isKeywordEnabled()) {
             try {
                 long start = System.currentTimeMillis();
-                keywordResults = keywordSearchService.search(
+                keywordResults.clear();
+                keywordResults.addAll(keywordSearchService.search(
                         request.getQuery(),
                         request.getKeywordTopK(),
                         request.getFilters()
-                );
+                ));
                 keywordTimeMs = System.currentTimeMillis() - start;
             } catch (IOException e) {
                 log.error("Keyword search failed", e);
@@ -83,11 +84,12 @@ public class HybridSearchService {
         } else if (request.isVectorEnabled()) {
             try {
                 long start = System.currentTimeMillis();
-                vectorResults = vectorSearchService.search(
+                vectorResults.clear();
+                vectorResults.addAll(vectorSearchService.search(
                         queryVector,
                         request.getVectorTopK(),
                         request.getDocIds()
-                );
+                ));
                 vectorTimeMs = System.currentTimeMillis() - start;
             } catch (Exception e) {
                 log.error("Vector search failed", e);
