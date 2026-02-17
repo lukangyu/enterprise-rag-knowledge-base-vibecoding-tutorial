@@ -1,7 +1,7 @@
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/graphrag_test?useUnicode=true&characterEncoding=utf8
+    url: jdbc:postgresql://localhost:5432/graphrag_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: postgres
     password: postgres
 
@@ -11,13 +11,13 @@ spring:
       port: 6379
       database: 1
 
+jwt:
+  secret: graphrag-jwt-secret-key-for-testing-must-be-at-least-256-bits-long
+  access-token-expire: 7200000
+  refresh-token-expire: 604800000
+  issuer: graphrag-test
+
 logging:
   level:
     root: info
     com.graphrag: debug
-
-jwt:
-  secret: test-jwt-secret-key-for-unit-testing
-  access-token-expire: 3600000
-  refresh-token-expire: 86400000
-  issuer: graphrag-test

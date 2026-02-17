@@ -66,6 +66,27 @@
         </rollingPolicy>
     </appender>
 
+    <appender name="ASYNC_INFO" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>512</queueSize>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="FILE_INFO"/>
+    </appender>
+
+    <appender name="ASYNC_ERROR" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>256</queueSize>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="FILE_ERROR"/>
+    </appender>
+
+    <appender name="ASYNC_DEBUG" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>1024</queueSize>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="FILE_DEBUG"/>
+    </appender>
+
     <logger name="com.graphrag" level="DEBUG"/>
     <logger name="org.springframework.web" level="INFO"/>
     <logger name="org.springframework.security" level="INFO"/>
@@ -77,26 +98,26 @@
     <logger name="io.netty" level="WARN"/>
 
     <springProfile name="dev">
-        <root level="INFO">
+        <root level="DEBUG">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_DEBUG"/>
-            <appender-ref ref="FILE_INFO"/>
-            <appender-ref ref="FILE_ERROR"/>
+            <appender-ref ref="ASYNC_DEBUG"/>
+            <appender-ref ref="ASYNC_INFO"/>
+            <appender-ref ref="ASYNC_ERROR"/>
         </root>
     </springProfile>
 
     <springProfile name="prod">
         <root level="INFO">
-            <appender-ref ref="FILE_INFO"/>
-            <appender-ref ref="FILE_ERROR"/>
+            <appender-ref ref="ASYNC_INFO"/>
+            <appender-ref ref="ASYNC_ERROR"/>
         </root>
     </springProfile>
 
     <springProfile name="test">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE_INFO"/>
-            <appender-ref ref="FILE_ERROR"/>
+            <appender-ref ref="ASYNC_INFO"/>
+            <appender-ref ref="ASYNC_ERROR"/>
         </root>
     </springProfile>
 

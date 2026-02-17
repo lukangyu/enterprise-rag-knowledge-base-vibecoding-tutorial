@@ -53,4 +53,17 @@ public class PageResult<T> implements Serializable {
     public static <T> PageResult<T> empty() {
         return new PageResult<>(List.of(), 0L, 1L, 10L);
     }
+
+    @Data
+    @Schema(description = "分页请求参数")
+    public static class PageRequest implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @Schema(description = "当前页码", example = "1")
+        private Integer pageNum = 1;
+
+        @Schema(description = "每页大小", example = "10")
+        private Integer pageSize = 10;
+    }
 }
