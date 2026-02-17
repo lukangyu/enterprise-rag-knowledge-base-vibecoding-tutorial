@@ -76,3 +76,10 @@ neo4j:
   uri: bolt://localhost:7687
   username: neo4j
   password: neo4j123
+
+document:
+  retry:
+    max-retries: 3
+    initial-delay-ms: 1000
+    max-delay-ms: 10000
+    multiplier: 2.0

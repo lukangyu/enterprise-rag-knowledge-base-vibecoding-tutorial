@@ -39,7 +39,9 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <minio.version>8.5.10</minio.version>
         <kafka.version>3.7.0</kafka.version>
-        <neo4j.version>4.4.18</neo4j.version>
+        <neo4j.version>5.12.0</neo4j.version>
+        <elasticsearch.version>8.12.0</elasticsearch.version>
+        <jakarta.json.version>2.0.1</jakarta.json.version>
     </properties>
 
     <dependencyManagement>
@@ -127,6 +129,18 @@
                 <groupId>org.neo4j</groupId>
                 <artifactId>neo4j-java-driver</artifactId>
                 <version>${neo4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>co.elastic.clients</groupId>
+                <artifactId>elasticsearch-java</artifactId>
+                <version>${elasticsearch.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.json</groupId>
+                <artifactId>jakarta.json-api</artifactId>
+                <version>${jakarta.json.version}</version>
             </dependency>
 
             <dependency>
