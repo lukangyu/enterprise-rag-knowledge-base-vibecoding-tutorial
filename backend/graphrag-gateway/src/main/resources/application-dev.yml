@@ -1,0 +1,78 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/graphrag?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: postgres
+    password: postgres
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      pool-name: GraphRagHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+    consumer:
+      group-id: graphrag-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+logging:
+  level:
+    root: info
+    com.graphrag: debug
+    org.springframework.web: debug
+    org.springframework.security: debug
+
+jwt:
+  secret: graphrag-jwt-secret-key-for-development-only-please-change-in-production
+  access-token-expire: 7200000
+  refresh-token-expire: 604800000
+  issuer: graphrag
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket-name: graphrag-documents
+
+ai-service:
+  base-url: http://localhost:8000
+  embedding-url: ${ai-service.base-url}/api/v1/embedding
+  llm-url: ${ai-service.base-url}/api/v1/llm
+  rerank-url: ${ai-service.base-url}/api/v1/rerank
+  parse-url: ${ai-service.base-url}/api/v1/parse
+
+milvus:
+  host: localhost
+  port: 19530
+  database: default
+
+neo4j:
+  uri: bolt://localhost:7687
+  username: neo4j
+  password: neo4j123

@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/graphrag_test?useUnicode=true&characterEncoding=utf8
+    username: postgres
+    password: postgres
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 1
+
+logging:
+  level:
+    root: info
+    com.graphrag: debug
+
+jwt:
+  secret: test-jwt-secret-key-for-unit-testing
+  access-token-expire: 3600000
+  refresh-token-expire: 86400000
+  issuer: graphrag-test
