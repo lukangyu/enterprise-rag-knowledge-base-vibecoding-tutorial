@@ -11,6 +11,7 @@ from config.database import milvus_connection
 from api import parser, chunker, embedding
 from api.search import router as search_router
 from api.health import router as health_router
+from api.entity import router as entity_router
 from api.error_handlers import (
     ai_service_exception_handler,
     validation_exception_handler,
@@ -70,6 +71,7 @@ app.include_router(chunker.router)
 app.include_router(embedding.router)
 app.include_router(search_router)
 app.include_router(health_router)
+app.include_router(entity_router)
 
 
 @app.get("/")
@@ -78,5 +80,5 @@ async def root():
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "status": "running",
-        "features": ["parsing", "chunking", "embedding", "hybrid_search"]
+        "features": ["parsing", "chunking", "embedding", "hybrid_search", "graph_traversal"]
     }
