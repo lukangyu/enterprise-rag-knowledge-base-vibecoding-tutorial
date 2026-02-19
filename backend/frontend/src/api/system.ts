@@ -111,19 +111,16 @@ export const systemApi = {
   },
 
   async getAuditLogs(params: {
-    page?: number
-    size?: number
+    pageNum?: number
+    pageSize?: number
     action?: string
     user_id?: string
-  }): Promise<{ items: AuditLog[]; total: number }> {
-    const response = await apiClient.get<{ items: AuditLog[]; pagination: { total: number } }>(
+  }): Promise<{ list: AuditLog[]; total: number }> {
+    const response = await apiClient.get<{ list: AuditLog[]; total: number }>(
       '/system/audit-logs',
       params
     )
-    return {
-      items: response.items,
-      total: response.pagination.total,
-    }
+    return response
   },
 
   async healthCheck(): Promise<{ status: string }> {

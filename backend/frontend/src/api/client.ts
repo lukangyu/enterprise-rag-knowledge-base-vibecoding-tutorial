@@ -10,18 +10,18 @@ interface ApiResponse<T = unknown> {
 }
 
 interface PaginationParams {
-  page?: number
-  size?: number
+  pageNum?: number
+  pageSize?: number
 }
 
 interface PaginationResponse<T> {
-  items: T[]
-  pagination: {
-    page: number
-    size: number
-    total: number
-    total_pages: number
-  }
+  list: T[]
+  total: number
+  pageNum: number
+  pageSize: number
+  pages: number
+  hasNext: boolean
+  hasPrevious: boolean
 }
 
 class ApiClient {

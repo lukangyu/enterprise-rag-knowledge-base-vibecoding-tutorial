@@ -19,27 +19,27 @@ public class ProxyController {
     private final ProxyService proxyService;
     private final ProxyProperties proxyProperties;
     
-    @RequestMapping("/v1/search/**")
+    @RequestMapping("/api/v1/search/**")
     public ResponseEntity<String> proxySearch(HttpServletRequest request, @RequestBody(required = false) String body) {
         return proxyService.forward("search", request, HttpMethod.valueOf(request.getMethod()), body);
     }
     
-    @RequestMapping("/v1/kg/**")
+    @RequestMapping("/api/v1/kg/**")
     public ResponseEntity<String> proxyKg(HttpServletRequest request, @RequestBody(required = false) String body) {
         return proxyService.forward("kg", request, HttpMethod.valueOf(request.getMethod()), body);
     }
     
-    @RequestMapping("/v1/qa/**")
+    @RequestMapping("/api/v1/qa/**")
     public ResponseEntity<String> proxyQa(HttpServletRequest request, @RequestBody(required = false) String body) {
         return proxyService.forward("qa", request, HttpMethod.valueOf(request.getMethod()), body);
     }
     
-    @RequestMapping("/v1/document/**")
+    @RequestMapping("/api/v1/document/**")
     public ResponseEntity<String> proxyDocument(HttpServletRequest request, @RequestBody(required = false) String body) {
         return proxyService.forward("document", request, HttpMethod.valueOf(request.getMethod()), body);
     }
     
-    @GetMapping("/v1/proxy/routes")
+    @GetMapping("/api/v1/proxy/routes")
     public Map<String, ProxyProperties.Route> getRoutes() {
         return proxyProperties.getRoutes();
     }

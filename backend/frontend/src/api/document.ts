@@ -13,8 +13,8 @@ export interface Document {
 }
 
 export interface DocumentQueryParams {
-  page?: number
-  size?: number
+  pageNum?: number
+  pageSize?: number
   status?: string
   doc_type?: string
   keyword?: string
@@ -34,15 +34,12 @@ export interface DocumentProgress {
 }
 
 export const documentApi = {
-  async list(params?: DocumentQueryParams): Promise<{ items: Document[]; total: number }> {
-    const response = await apiClient.get<{ items: Document[]; pagination: { total: number } }>(
-      '/documents',
+  async list(params?: DocumentQueryParams): Promise<{ list: Document[]; total: number }> {
+    const response = await apiClient.post<{ list: Document[]; total: number }>(
+      '/documents/list',
       params
     )
-    return {
-      items: response.items,
-      total: response.pagination.total,
-    }
+    return response
   },
 
   async get(id: string): Promise<Document> {
@@ -56,8 +53,15 @@ export const documentApi = {
       formData.append('metadata', JSON.stringify(metadata))
     }
 
+    const token = localStorage.getItem('token')
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch('/api/v1/documents/upload', {
       method: 'POST',
+      headers,
       body: formData,
     })
 
@@ -86,7 +90,13 @@ export const documentApi = {
   },
 
   async download(id: string): Promise<Blob> {
-    const response = await fetch(`/api/v1/documents/${id}/download`)
+    const token = localStorage.getItem('token')
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`/api/v1/documents/${id}/download`, { headers })
     if (!response.ok) {
       throw new Error(`Download failed: ${response.status}`)
     }

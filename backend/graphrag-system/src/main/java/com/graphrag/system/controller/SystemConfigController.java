@@ -15,7 +15,7 @@ import java.util.Map;
 
 @Tag(name = "System Config", description = "System configuration management")
 @RestController
-@RequestMapping("/v1/system/config")
+@RequestMapping("/api/v1/system/config")
 @RequiredArgsConstructor
 public class SystemConfigController {
     

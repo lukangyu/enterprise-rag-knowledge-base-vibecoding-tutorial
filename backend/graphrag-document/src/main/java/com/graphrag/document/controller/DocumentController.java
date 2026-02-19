@@ -8,12 +8,15 @@ import com.graphrag.document.dto.DocumentUploadRequest;
 import com.graphrag.document.dto.DocumentUploadResponse;
 import com.graphrag.document.dto.MetadataUpdateRequest;
 import com.graphrag.document.dto.ProgressResponse;
+import com.graphrag.document.dto.BatchDeleteRequest;
 import com.graphrag.document.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +27,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/documents")
@@ -68,6 +74,32 @@ public class DocumentController {
             @Parameter(description = "文档ID") @PathVariable String id) {
         documentService.deleteDocument(id);
         return Result.success();
+    }
+
+    @PostMapping("/batch-delete")
+    @Operation(summary = "批量删除文档", description = "批量删除多个文档")
+    public Result<Map<String, Object>> batchDeleteDocuments(
+            @Parameter(description = "批量删除请求") @RequestBody BatchDeleteRequest request) {
+        int deleted = documentService.batchDelete(request.getIds());
+        return Result.success(Map.of(
+            "deleted_count", deleted,
+            "requested_count", request.getIds().size()
+        ));
+    }
+
+    @PostMapping("/{id}/reprocess")
+    @Operation(summary = "重新处理文档", description = "重新触发文档处理流程")
+    public Result<Void> reprocessDocument(
+            @Parameter(description = "文档ID") @PathVariable String id) {
+        documentService.reprocessDocument(id);
+        return Result.success();
+    }
+
+    @GetMapping("/{id}/download")
+    @Operation(summary = "下载文档", description = "下载原始文档文件")
+    public ResponseEntity<Resource> downloadDocument(
+            @Parameter(description = "文档ID") @PathVariable String id) {
+        return documentService.downloadDocument(id);
     }
 
     @PostMapping("/list")

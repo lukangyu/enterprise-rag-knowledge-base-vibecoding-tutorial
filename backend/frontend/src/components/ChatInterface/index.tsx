@@ -183,7 +183,15 @@ const ChatInterface: React.FC = () => {
                       }
                     >
                       <Tooltip title={source.content}>
-                        <Text ellipsis={{ rows: 3 }}>
+                        <Text 
+                          ellipsis 
+                          style={{ 
+                            display: '-webkit-box', 
+                            WebkitLineClamp: 3, 
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
+                        >
                           {source.content}
                         </Text>
                       </Tooltip>

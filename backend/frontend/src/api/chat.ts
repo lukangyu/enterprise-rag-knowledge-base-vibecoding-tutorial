@@ -44,7 +44,7 @@ export const chatApi = {
     })
   },
 
-  chatStream(request: ChatRequest): EventSource {
+  chatStream(request: ChatRequest, token?: string): EventSource {
     const url = `${API_BASE_URL}/qa/chat/stream`
     const eventSource = new EventSource(url, {
       withCredentials: true,
@@ -56,13 +56,19 @@ export const chatApi = {
     request: ChatRequest,
     onMessage: (data: unknown) => void,
     onError: (error: Error) => void,
-    onComplete: () => void
+    onComplete: () => void,
+    token?: string
   ): Promise<void> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${API_BASE_URL}/qa/chat/stream`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         ...request,
         stream: true,
@@ -110,11 +116,17 @@ export const chatApi = {
   },
 
   async simpleChat(query: string, stream: boolean = true): Promise<Response> {
+    const token = localStorage.getItem('token')
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${API_BASE_URL}/qa/simple`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ query, stream }),
     })
     return response

@@ -11,7 +11,7 @@ import java.util.Map;
 
 @Tag(name = "System Monitor", description = "System monitoring and statistics")
 @RestController
-@RequestMapping("/v1/system")
+@RequestMapping("/api/v1/system")
 @RequiredArgsConstructor
 public class SystemMonitorController {
     

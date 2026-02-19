@@ -19,7 +19,7 @@ import java.util.Map;
 
 @Tag(name = "Audit Log", description = "Audit log management")
 @RestController
-@RequestMapping("/v1/system/audit-logs")
+@RequestMapping("/api/v1/system/audit-logs")
 @RequiredArgsConstructor
 public class AuditLogController {
     

@@ -24,11 +24,21 @@ import com.graphrag.document.producer.DocumentMessageProducer;
 import com.graphrag.document.service.DocumentService;
 import com.graphrag.document.service.TaskStatusManager;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -177,6 +187,105 @@ public class DocumentServiceImpl implements DocumentService {
 
         documentMapper.deleteById(id);
         log.info("Document deleted: docId={}", id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchDelete(List<String> ids) {
+        int deletedCount = 0;
+        for (String id : ids) {
+            try {
+                deleteDocument(id);
+                deletedCount++;
+            } catch (Exception e) {
+                log.warn("Failed to delete document {}: {}", id, e.getMessage());
+            }
+        }
+        log.info("Batch delete completed: {} of {} documents deleted", deletedCount, ids.size());
+        return deletedCount;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reprocessDocument(String id) {
+        Optional<Document> optionalDocument = documentMapper.findById(id);
+        if (optionalDocument.isEmpty()) {
+            throw new BusinessException("文档不存在: " + id);
+        }
+
+        Document document = optionalDocument.get();
+        document.setStatus(DocumentStatus.PENDING.getCode());
+        document.setUpdatedAt(LocalDateTime.now());
+        documentMapper.updateById(document);
+
+        taskStatusManager.initProgress(id);
+
+        try {
+            documentMessageProducer.sendFullProcessMessage(id).join();
+            log.info("Document reprocess message sent: docId={}", id);
+        } catch (Exception e) {
+            log.error("Failed to send reprocess message: docId={}, error={}", id, e.getMessage(), e);
+            throw new BusinessException("文档重新处理消息发送失败");
+        }
+    }
+
+    @Override
+    public ResponseEntity<Resource> downloadDocument(String id) {
+        Optional<Document> optionalDocument = documentMapper.findById(id);
+        if (optionalDocument.isEmpty()) {
+            throw new BusinessException("文档不存在: " + id);
+        }
+
+        Document document = optionalDocument.get();
+        
+        if (document.getFilePath() == null || document.getFilePath().isEmpty()) {
+            throw new BusinessException("文档文件路径不存在");
+        }
+
+        try {
+            InputStream inputStream = minioService.downloadFile(document.getFilePath());
+            Resource resource = new InputStreamResource(inputStream);
+            
+            String contentType = determineContentType(document.getDocType());
+            String filename = document.getTitle() != null ? 
+                document.getTitle() + getFileExtensionForType(document.getDocType()) :
+                document.getSource();
+
+            return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, 
+                    "attachment; filename=\"" + filename + "\"")
+                .body(resource);
+        } catch (Exception e) {
+            log.error("Failed to download document: docId={}, error={}", id, e.getMessage(), e);
+            throw new BusinessException("文档下载失败: " + e.getMessage());
+        }
+    }
+
+    private String determineContentType(String docType) {
+        if (docType == null) {
+            return "application/octet-stream";
+        }
+        return switch (docType.toUpperCase()) {
+            case "PDF" -> "application/pdf";
+            case "DOC", "DOCX" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "MD", "TXT" -> "text/plain";
+            default -> "application/octet-stream";
+        };
+    }
+
+    private String getFileExtensionForType(String docType) {
+        if (docType == null) {
+            return "";
+        }
+        return switch (docType.toUpperCase()) {
+            case "PDF" -> ".pdf";
+            case "DOC" -> ".doc";
+            case "DOCX" -> ".docx";
+            case "MD" -> ".md";
+            case "TXT" -> ".txt";
+            default -> "";
+        };
     }
 
     @Override

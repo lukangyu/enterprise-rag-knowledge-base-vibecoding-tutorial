@@ -13,7 +13,7 @@ import java.util.Map;
 
 @Tag(name = "健康检查", description = "系统健康检查接口")
 @RestController
-@RequestMapping("/health")
+@RequestMapping("/api/v1/health")
 public class HealthController {
 
     @Operation(summary = "健康检查", description = "检查服务是否正常运行")
