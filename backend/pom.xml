@@ -15,8 +15,6 @@
         <module>graphrag-common</module>
         <module>graphrag-system</module>
         <module>graphrag-document</module>
-        <module>graphrag-knowledge</module>
-        <module>graphrag-search</module>
         <module>graphrag-gateway</module>
     </modules>
 

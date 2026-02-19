@@ -29,8 +29,8 @@ class MarkdownParser:
                 try:
                     metadata.update(yaml.safe_load(parts[1]))
                     content = parts[2]
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"Failed to parse YAML front matter: {e}")
 
         heading_pattern = re.compile(r'^(#{1,6})\s+(.+)$', re.MULTILINE)
         for match in heading_pattern.finditer(content):

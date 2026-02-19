@@ -1,0 +1,10 @@
+.settings-page {
+  padding: 24px;
+}
+
+.settings-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}

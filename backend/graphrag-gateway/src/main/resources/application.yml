@@ -74,3 +74,40 @@ springdoc:
 
 logging:
   config: classpath:logback-spring.xml
+
+proxy:
+  routes:
+    search:
+      path: /v1/search/**
+      target: http://localhost:8000/search
+      strip-prefix: true
+      connect-timeout: 5000
+      read-timeout: 60000
+    kg:
+      path: /v1/kg/**
+      target: http://localhost:8000/kg
+      strip-prefix: true
+      connect-timeout: 5000
+      read-timeout: 60000
+    qa:
+      path: /v1/qa/**
+      target: http://localhost:8000/qa
+      strip-prefix: true
+      connect-timeout: 5000
+      read-timeout: 120000
+    document:
+      path: /v1/document/**
+      target: http://localhost:8000/document
+      strip-prefix: true
+      connect-timeout: 5000
+      read-timeout: 300000
+
+rate-limit:
+  enabled: true
+  default-limit: 100
+  default-window: 60
+  routes:
+    search: 50
+    kg: 30
+    qa: 20
+    document: 10
